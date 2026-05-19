@@ -30,7 +30,7 @@
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="be.webatvantage.gitguard.GitGuardStartupActivity"/>
+        <postStartupActivity implementation="be.tomsix.gitguard.GitGuardStartupActivity"/>
     </extensions>
 
 </idea-plugin>

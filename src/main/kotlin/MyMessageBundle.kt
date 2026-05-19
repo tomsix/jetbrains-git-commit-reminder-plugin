@@ -1,4 +1,4 @@
-package be.webatvantage
+package be.tomsix
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.Nls
