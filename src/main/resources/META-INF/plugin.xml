@@ -1,31 +1,34 @@
-<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<!-- Plugin Configuration File. https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <!-- Unique identifier of the plugin. It should be FQN. It cannot be changed between the plugin versions. -->
+
     <id>be.webatvantage.jetbrains-git-guard-plugin</id>
-
-    <!-- Public plugin name should be written in Title Case.
-     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
-    <name>Git guard</name>
-
-    <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
+    <name>Git Guard</name>
     <vendor url="https://www.webatvantage.be">Webatvantage</vendor>
 
-    <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-         Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        <br>
-        <em>most HTML tags may be used</em>
-        ]]></description>
+        <p>
+            Prevents you from accidentally walking away from unfinished Git work.
+        </p>
+        <p>
+            When you close a project (or quit the IDE), Git Guard checks the current state of every
+            Git repository in the project and shows a confirmation dialog if either of the following is true:
+        </p>
+        <ul>
+            <li><b>Uncommitted changes</b> &mdash; modified, added, or deleted files in your working tree.</li>
+            <li><b>Unpushed commits</b> &mdash; local commits that have not been pushed to the upstream branch,
+                or commits on a branch that has no upstream configured.</li>
+        </ul>
+        <p>
+            You can still close the project at any time &mdash; the dialog just makes sure it is intentional.
+        </p>
+    ]]></description>
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+    <!-- Compatibility: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
     <depends>Git4Idea</depends>
 
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
 
-    <!-- Extensions defined by the plugin.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="be.webatvantage.gitguard.GitGuardStartupActivity"/>
     </extensions>
