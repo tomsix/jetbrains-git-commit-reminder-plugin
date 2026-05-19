@@ -1,10 +1,13 @@
 package be.webatvantage.gitguard
 
 import be.webatvantage.MyMessageBundle
+import com.intellij.ide.impl.ProjectUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.VetoableProjectManagerListener
+import com.intellij.openapi.ui.MessageDialogBuilder
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.changes.ChangeListManager
+import com.intellij.openapi.wm.WindowManager
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 
@@ -23,15 +26,17 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
             else -> "gitguard.dialog.message.unpushed"
         }
 
-        val answer = Messages.showYesNoDialog(
-            project,
-            MyMessageBundle.message(messageKey),
+        ProjectUtil.focusProjectWindow(project, true)
+        val parent = WindowManager.getInstance().suggestParentWindow(project)
+
+        return MessageDialogBuilder.yesNo(
             MyMessageBundle.message("gitguard.dialog.title"),
-            MyMessageBundle.message("gitguard.dialog.closeAnyway"),
-            MyMessageBundle.message("gitguard.dialog.cancel"),
-            Messages.getWarningIcon(),
+            MyMessageBundle.message(messageKey),
         )
-        return answer == Messages.YES
+            .yesText(MyMessageBundle.message("gitguard.dialog.closeAnyway"))
+            .noText(MyMessageBundle.message("gitguard.dialog.cancel"))
+            .icon(Messages.getWarningIcon())
+            .ask(parent)
     }
 
     private fun hasUnpushedCommits(project: Project): Boolean {

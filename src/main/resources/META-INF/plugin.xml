@@ -1,9 +1,9 @@
 <!-- Plugin Configuration File. https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
 
-    <id>be.webatvantage.jetbrains-git-guard-plugin</id>
+    <id>be.toms.jetbrains-git-guard-plugin</id>
     <name>Git Guard</name>
-    <vendor url="https://www.webatvantage.be">Webatvantage</vendor>
+    <vendor url="https://www.netwerk64.be">tomsix</vendor>
 
     <description><![CDATA[
         <p>
