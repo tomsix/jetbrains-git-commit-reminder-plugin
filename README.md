@@ -1,10 +1,10 @@
-# Git Guard
+# Git Commit Reminder
 
 A JetBrains IDE plugin that warns you before closing a project (or quitting the IDE) when there are still uncommitted changes or unpushed commits in any of the project's Git repositories.
 
 ## What it does
 
-When you close a project, Git Guard checks every Git repository in that project and, if anything is unfinished, shows a confirmation dialog so you can decide what to do.
+When you close a project, Git Commit Reminder checks every Git repository in that project and, if anything is unfinished, shows a confirmation dialog so you can decide what to do.
 
 It detects two states:
 
@@ -25,7 +25,7 @@ Depending on what's detected, the dialog offers contextual actions:
 
 ### From JetBrains Marketplace
 
-Search for **Git Guard** in **Settings → Plugins → Marketplace**, or install from the [Marketplace listing](https://plugins.jetbrains.com).
+Search for **Git Commit Reminder** in **Settings → Plugins → Marketplace**, or install from the [Marketplace listing](https://plugins.jetbrains.com).
 
 ### From disk
 

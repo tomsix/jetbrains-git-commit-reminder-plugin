@@ -1,16 +1,16 @@
 <!-- Plugin Configuration File. https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
 
-    <id>be.toms.jetbrains-git-guard-plugin</id>
-    <name>Git Guard</name>
+    <id>be.toms.jetbrains-git-commit-reminder-plugin</id>
+    <name>Git Commit Reminder</name>
     <vendor url="https://www.netwerk64.be">tomsix</vendor>
 
     <description><![CDATA[
         <p>
-            Prevents you from accidentally walking away from unfinished Git work.
+            Reminds you to commit and push before walking away from unfinished Git work.
         </p>
         <p>
-            When you close a project (or quit the IDE), Git Guard checks the current state of every
+            When you close a project (or quit the IDE), Git Commit Reminder checks the current state of every
             Git repository in the project and shows a confirmation dialog if either of the following is true:
         </p>
         <ul>

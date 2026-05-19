@@ -1,6 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 
-rootProject.name = "jetbrains-git-guard-plugin"
+rootProject.name = "jetbrains-git-commit-reminder-plugin"
 
 pluginManagement {
     plugins {
