@@ -53,6 +53,7 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
             GitGuardDialog.Choice.CLOSE_ANYWAY -> true
             GitGuardDialog.Choice.CLOSE_ALL -> {
                 enableSkipAll()
+                closeOtherProjects(project)
                 true
             }
             GitGuardDialog.Choice.COMMIT -> {
@@ -64,6 +65,17 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
                 false
             }
             GitGuardDialog.Choice.CANCEL, null -> false
+        }
+    }
+
+    private fun closeOtherProjects(currentProject: Project) {
+        val pm = ProjectManager.getInstance()
+        val others = pm.openProjects.filter { it !== currentProject }
+        ApplicationManager.getApplication().invokeLater {
+            others.forEach { other ->
+                if (!other.isDisposed) pm.closeAndDispose(other)
+            }
+            clearSkipAll()
         }
     }
 
@@ -96,14 +108,19 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         @Volatile
         private var skipAllChecks: Boolean = false
 
-        // Shared across all project instances: set by "Close All", cleared after a
-        // short window so a cancelled quit doesn't leave the flag stuck on.
+        // Shared across all project instances: set by "Close All", cleared once the
+        // batch close finishes. The 30s reschedule is a safety net for the case
+        // where the batch never completes (e.g. another listener vetoes a close).
         private fun enableSkipAll() {
             skipAllChecks = true
             AppExecutorUtil.getAppScheduledExecutorService().schedule(
                 { skipAllChecks = false },
                 30, TimeUnit.SECONDS,
             )
+        }
+
+        private fun clearSkipAll() {
+            skipAllChecks = false
         }
     }
 }
