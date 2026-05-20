@@ -30,6 +30,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Cache IntelliJ Platform
+        uses: actions/cache@v4
+        with:
+          path: .intellijPlatform
+          key: intellij-platform-${{ runner.os }}-${{ hashFiles('build.gradle.kts', 'gradle.properties', 'gradle/libs.versions.toml') }}
+          restore-keys: |
+            intellij-platform-${{ runner.os }}-
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
