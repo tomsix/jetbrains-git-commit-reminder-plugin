@@ -1,5 +1,8 @@
 # Git Commit Reminder
 
+[![Tests](https://github.com/tomsix/jetbrains-git-commit-reminder-plugin/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/tomsix/jetbrains-git-commit-reminder-plugin/actions/workflows/test.yml)
+[![Plugin Verification](https://github.com/tomsix/jetbrains-git-commit-reminder-plugin/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/tomsix/jetbrains-git-commit-reminder-plugin/actions/workflows/verify.yml)
+
 A JetBrains IDE plugin that warns you before closing a project (or quitting the IDE) when there are still uncommitted changes or unpushed commits in any of the project's Git repositories.
 
 ## What it does
