@@ -14,35 +14,60 @@ class GitGuardDialogTest {
     @Test
     fun `close anyway and cancel are always available`() {
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = false)
         )
         assertTrue(Choice.CLOSE_ANYWAY in choices)
         assertTrue(Choice.CANCEL in choices)
     }
 
     @Test
-    fun `close all is hidden when only one project is open`() {
+    fun `close all is hidden when not quitting the IDE`() {
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = false)
         )
         assertFalse(Choice.CLOSE_ALL in choices)
     }
 
     @Test
-    fun `close all is shown when multiple projects are open`() {
+    fun `close all is hidden during single-project close even with both git states active`() {
+        // Reproduces the bug report: user closes one project while others are open.
+        // quitInProgress is false because this is not an IDE quit, so CLOSE_ALL
+        // must not appear regardless of how many other projects happen to be open.
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = true)
+            State(hasUncommitted = true, hasUnpushed = true, quitInProgress = false)
+        )
+        assertFalse(Choice.CLOSE_ALL in choices)
+    }
+
+    @Test
+    fun `close all is shown when the IDE is quitting`() {
+        val choices = GitGuardDialog.availableChoices(
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = true)
         )
         assertTrue(Choice.CLOSE_ALL in choices)
     }
 
     @Test
+    fun `close all visibility depends only on quit state, not on git state`() {
+        // CLOSE_ALL should appear during any quit, even one with only uncommitted
+        // changes or only unpushed commits.
+        val uncommittedOnly = GitGuardDialog.availableChoices(
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = true)
+        )
+        val unpushedOnly = GitGuardDialog.availableChoices(
+            State(hasUncommitted = false, hasUnpushed = true, quitInProgress = true)
+        )
+        assertTrue(Choice.CLOSE_ALL in uncommittedOnly)
+        assertTrue(Choice.CLOSE_ALL in unpushedOnly)
+    }
+
+    @Test
     fun `commit button appears only when there are uncommitted changes`() {
         val withUncommitted = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = false)
         )
         val withoutUncommitted = GitGuardDialog.availableChoices(
-            State(hasUncommitted = false, hasUnpushed = true, multipleProjectsOpen = false)
+            State(hasUncommitted = false, hasUnpushed = true, quitInProgress = false)
         )
         assertTrue(Choice.COMMIT in withUncommitted)
         assertFalse(Choice.COMMIT in withoutUncommitted)
@@ -51,10 +76,10 @@ class GitGuardDialogTest {
     @Test
     fun `push button appears only when there are unpushed commits`() {
         val withUnpushed = GitGuardDialog.availableChoices(
-            State(hasUncommitted = false, hasUnpushed = true, multipleProjectsOpen = false)
+            State(hasUncommitted = false, hasUnpushed = true, quitInProgress = false)
         )
         val withoutUnpushed = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = false)
         )
         assertTrue(Choice.PUSH in withUnpushed)
         assertFalse(Choice.PUSH in withoutUnpushed)
@@ -63,7 +88,7 @@ class GitGuardDialogTest {
     @Test
     fun `both action buttons appear when both conditions are true`() {
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = true, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = true, quitInProgress = false)
         )
         assertTrue(Choice.COMMIT in choices)
         assertTrue(Choice.PUSH in choices)
@@ -72,7 +97,7 @@ class GitGuardDialogTest {
     @Test
     fun `option ordering puts close-anyway first, then close-all, then cancel`() {
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = true, multipleProjectsOpen = true)
+            State(hasUncommitted = true, hasUnpushed = true, quitInProgress = true)
         )
         assertEquals(Choice.CLOSE_ANYWAY, choices[0])
         assertEquals(Choice.CLOSE_ALL, choices[1])
@@ -82,7 +107,7 @@ class GitGuardDialogTest {
     @Test
     fun `all five choices are present when every condition is true`() {
         val choices = GitGuardDialog.availableChoices(
-            State(hasUncommitted = true, hasUnpushed = true, multipleProjectsOpen = true)
+            State(hasUncommitted = true, hasUnpushed = true, quitInProgress = true)
         )
         assertEquals(5, choices.size)
         assertEquals(setOf(Choice.CLOSE_ANYWAY, Choice.CLOSE_ALL, Choice.CANCEL, Choice.COMMIT, Choice.PUSH), choices.toSet())
@@ -93,7 +118,7 @@ class GitGuardDialogTest {
     @Test
     fun `messageKey picks 'both' when both conditions are true`() {
         val key = GitGuardDialog.messageKey(
-            State(hasUncommitted = true, hasUnpushed = true, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = true, quitInProgress = false)
         )
         assertEquals("gitguard.dialog.message.both", key)
     }
@@ -101,7 +126,7 @@ class GitGuardDialogTest {
     @Test
     fun `messageKey picks 'uncommitted' for uncommitted-only state`() {
         val key = GitGuardDialog.messageKey(
-            State(hasUncommitted = true, hasUnpushed = false, multipleProjectsOpen = false)
+            State(hasUncommitted = true, hasUnpushed = false, quitInProgress = false)
         )
         assertEquals("gitguard.dialog.message.uncommitted", key)
     }
@@ -109,7 +134,7 @@ class GitGuardDialogTest {
     @Test
     fun `messageKey picks 'unpushed' for unpushed-only state`() {
         val key = GitGuardDialog.messageKey(
-            State(hasUncommitted = false, hasUnpushed = true, multipleProjectsOpen = false)
+            State(hasUncommitted = false, hasUnpushed = true, quitInProgress = false)
         )
         assertEquals("gitguard.dialog.message.unpushed", key)
     }

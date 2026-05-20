@@ -15,12 +15,12 @@ internal object GitGuardDialog {
     data class State(
         val hasUncommitted: Boolean,
         val hasUnpushed: Boolean,
-        val multipleProjectsOpen: Boolean,
+        val quitInProgress: Boolean,
     )
 
     fun availableChoices(state: State): List<Choice> = buildList {
         add(Choice.CLOSE_ANYWAY)
-        if (state.multipleProjectsOpen) add(Choice.CLOSE_ALL)
+        if (state.quitInProgress) add(Choice.CLOSE_ALL)
         add(Choice.CANCEL)
         if (state.hasUncommitted) add(Choice.COMMIT)
         if (state.hasUnpushed) add(Choice.PUSH)

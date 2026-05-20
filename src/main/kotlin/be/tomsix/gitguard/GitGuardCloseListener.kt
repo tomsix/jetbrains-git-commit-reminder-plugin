@@ -9,8 +9,8 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.project.VetoableProjectManagerListener
 import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.changes.ChangeListManager
@@ -29,7 +29,7 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         val state = GitGuardDialog.State(
             hasUncommitted = ChangeListManager.getInstance(project).allChanges.isNotEmpty(),
             hasUnpushed = hasUnpushedCommits(project),
-            multipleProjectsOpen = ProjectManager.getInstance().openProjects.size > 1,
+            quitInProgress = ApplicationManagerEx.getApplicationEx().isExitInProgress,
         )
         if (!state.hasUncommitted && !state.hasUnpushed) return true
 
@@ -53,7 +53,7 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
             GitGuardDialog.Choice.CLOSE_ANYWAY -> true
             GitGuardDialog.Choice.CLOSE_ALL -> {
                 enableSkipAll()
-                closeOtherProjects(project)
+                ApplicationManager.getApplication().invokeLater { clearSkipAll() }
                 true
             }
             GitGuardDialog.Choice.COMMIT -> {
@@ -65,17 +65,6 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
                 false
             }
             GitGuardDialog.Choice.CANCEL, null -> false
-        }
-    }
-
-    private fun closeOtherProjects(currentProject: Project) {
-        val pm = ProjectManager.getInstance()
-        val others = pm.openProjects.filter { it !== currentProject }
-        ApplicationManager.getApplication().invokeLater {
-            others.forEach { other ->
-                if (!other.isDisposed) pm.closeAndDispose(other)
-            }
-            clearSkipAll()
         }
     }
 
