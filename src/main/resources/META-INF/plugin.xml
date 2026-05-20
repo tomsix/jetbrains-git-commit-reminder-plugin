@@ -33,4 +33,9 @@
         <postStartupActivity implementation="be.tomsix.gitguard.GitGuardStartupActivity"/>
     </extensions>
 
+    <applicationListeners>
+        <listener class="be.tomsix.gitguard.GitGuardAppLifecycleListener"
+                  topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
+
 </idea-plugin>

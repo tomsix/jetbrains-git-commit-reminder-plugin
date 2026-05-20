@@ -9,7 +9,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.ex.ActionUtil
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.ex.ApplicationManagerEx
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.VetoableProjectManagerListener
 import com.intellij.openapi.ui.Messages
@@ -29,7 +28,7 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         val state = GitGuardDialog.State(
             hasUncommitted = ChangeListManager.getInstance(project).allChanges.isNotEmpty(),
             hasUnpushed = hasUnpushedCommits(project),
-            quitInProgress = isAppExitInProgress(),
+            quitInProgress = GitGuardAppState.quitInProgress,
         )
         if (!state.hasUncommitted && !state.hasUnpushed) return true
 
@@ -111,11 +110,5 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         private fun clearSkipAll() {
             skipAllChecks = false
         }
-
-        // Wraps the @ApiStatus.Internal property so the suppression is scoped to this
-        // one call site instead of leaking onto every reader of canClose.
-        @Suppress("UnstableApiUsage")
-        private fun isAppExitInProgress(): Boolean =
-            ApplicationManagerEx.getApplicationEx().isExitInProgress
     }
 }
