@@ -29,7 +29,7 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         val state = GitGuardDialog.State(
             hasUncommitted = ChangeListManager.getInstance(project).allChanges.isNotEmpty(),
             hasUnpushed = hasUnpushedCommits(project),
-            quitInProgress = ApplicationManagerEx.getApplicationEx().isExitInProgress,
+            quitInProgress = isAppExitInProgress(),
         )
         if (!state.hasUncommitted && !state.hasUnpushed) return true
 
@@ -111,5 +111,11 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         private fun clearSkipAll() {
             skipAllChecks = false
         }
+
+        // Wraps the @ApiStatus.Internal property so the suppression is scoped to this
+        // one call site instead of leaking onto every reader of canClose.
+        @Suppress("UnstableApiUsage")
+        private fun isAppExitInProgress(): Boolean =
+            ApplicationManagerEx.getApplicationEx().isExitInProgress
     }
 }
