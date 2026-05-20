@@ -35,14 +35,14 @@ internal object GitGuardDialog {
     fun decideOutgoing(
         hasRemotes: Boolean,
         hasCurrentBranch: Boolean,
-        upstreamConfigured: Boolean,
         localHash: String?,
         remoteHash: String?,
     ): Boolean {
         if (!hasRemotes) return false
         if (!hasCurrentBranch) return false
-        if (!upstreamConfigured) return localHash != null
-        return localHash != null && remoteHash != null && localHash != remoteHash
+        if (localHash == null) return false
+        if (remoteHash == null) return true
+        return localHash != remoteHash
     }
 
     fun labelOf(choice: Choice): String = when (choice) {

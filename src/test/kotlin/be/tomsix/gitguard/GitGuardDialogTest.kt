@@ -146,7 +146,6 @@ class GitGuardDialogTest {
         val result = GitGuardDialog.decideOutgoing(
             hasRemotes = false,
             hasCurrentBranch = true,
-            upstreamConfigured = true,
             localHash = "abc",
             remoteHash = "abc",
         )
@@ -158,7 +157,6 @@ class GitGuardDialogTest {
         val result = GitGuardDialog.decideOutgoing(
             hasRemotes = true,
             hasCurrentBranch = false,
-            upstreamConfigured = false,
             localHash = null,
             remoteHash = null,
         )
@@ -166,11 +164,10 @@ class GitGuardDialogTest {
     }
 
     @Test
-    fun `decideOutgoing returns true when branch has no upstream but has commits`() {
+    fun `decideOutgoing returns true when branch has no remote counterpart but has commits`() {
         val result = GitGuardDialog.decideOutgoing(
             hasRemotes = true,
             hasCurrentBranch = true,
-            upstreamConfigured = false,
             localHash = "abc",
             remoteHash = null,
         )
@@ -178,11 +175,10 @@ class GitGuardDialogTest {
     }
 
     @Test
-    fun `decideOutgoing returns true when local and upstream hashes differ`() {
+    fun `decideOutgoing returns true when local and remote hashes differ`() {
         val result = GitGuardDialog.decideOutgoing(
             hasRemotes = true,
             hasCurrentBranch = true,
-            upstreamConfigured = true,
             localHash = "abc",
             remoteHash = "def",
         )
@@ -190,11 +186,25 @@ class GitGuardDialogTest {
     }
 
     @Test
-    fun `decideOutgoing returns false when local and upstream hashes match`() {
+    fun `decideOutgoing returns false when local and remote hashes match`() {
         val result = GitGuardDialog.decideOutgoing(
             hasRemotes = true,
             hasCurrentBranch = true,
-            upstreamConfigured = true,
+            localHash = "abc",
+            remoteHash = "abc",
+        )
+        assertFalse(result)
+    }
+
+    @Test
+    fun `decideOutgoing returns false when branch has no upstream config but same-named remote ref matches`() {
+        // Regression: a branch pushed without `git push -u` has no upstream tracking
+        // configured but its commits are already on the remote. The caller now resolves
+        // the remote hash via the same-named remote ref (e.g. origin/main) and passes
+        // it in here; the matching hash must be treated as "pushed", not "unpushed".
+        val result = GitGuardDialog.decideOutgoing(
+            hasRemotes = true,
+            hasCurrentBranch = true,
             localHash = "abc",
             remoteHash = "abc",
         )

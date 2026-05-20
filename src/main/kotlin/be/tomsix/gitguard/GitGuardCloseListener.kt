@@ -15,6 +15,8 @@ import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.concurrency.AppExecutorUtil
+import git4idea.GitLocalBranch
+import git4idea.repo.GitBranchTrackInfo
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
 import java.util.concurrent.TimeUnit
@@ -86,10 +88,25 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         return GitGuardDialog.decideOutgoing(
             hasRemotes = repo.remotes.isNotEmpty(),
             hasCurrentBranch = branch != null,
-            upstreamConfigured = trackInfo != null,
             localHash = branch?.let { repo.branches.getHash(it)?.asString() },
-            remoteHash = trackInfo?.remoteBranch?.let { repo.branches.getHash(it)?.asString() },
+            remoteHash = resolveRemoteHash(repo, branch, trackInfo),
         )
+    }
+
+    // Prefer the configured upstream; fall back to a same-named remote branch
+    // (e.g. local `main` ↔ `origin/main`) so a branch that's been pushed without
+    // `git push -u` isn't misreported as having unpushed commits.
+    private fun resolveRemoteHash(
+        repo: GitRepository,
+        branch: GitLocalBranch?,
+        trackInfo: GitBranchTrackInfo?,
+    ): String? {
+        if (branch == null) return null
+        trackInfo?.remoteBranch?.let { return repo.branches.getHash(it)?.asString() }
+        val match = repo.branches.remoteBranches.firstOrNull {
+            it.nameForRemoteOperations == branch.name
+        } ?: return null
+        return repo.branches.getHash(match)?.asString()
     }
 
     companion object {
