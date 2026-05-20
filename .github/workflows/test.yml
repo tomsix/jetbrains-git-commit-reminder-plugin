@@ -3,7 +3,17 @@ name: Tests
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.idea/**'
+      - '.run/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - '.idea/**'
+      - '.run/**'
   workflow_call:
 
 permissions:
