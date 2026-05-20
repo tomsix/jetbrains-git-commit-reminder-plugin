@@ -1,6 +1,7 @@
 package be.tomsix.gitguard
 
 import be.tomsix.gitguard.GitGuardDialog.Choice
+import be.tomsix.gitguard.GitGuardDialog.OutgoingInfo
 import be.tomsix.gitguard.GitGuardDialog.State
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -209,5 +210,82 @@ class GitGuardDialogTest {
             remoteHash = "abc",
         )
         assertFalse(result)
+    }
+
+    // --- renderMessage ---
+
+    // Echo formatter — keeps the rendering test focused on structure (which keys
+    // appear, in what order, with which args) instead of the localized text.
+    private val echo: (String, List<Any>) -> String = { key, args ->
+        if (args.isEmpty()) key else "$key(${args.joinToString(",")})"
+    }
+
+    @Test
+    fun `renderMessage assembles lead, single detail bullet, then close question`() {
+        val state = State(
+            hasUncommitted = false,
+            hasUnpushed = true,
+            quitInProgress = false,
+            unpushedDetails = listOf(OutgoingInfo("main", "origin/main", 3)),
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        val expected = "gitguard.dialog.message.unpushed" +
+            "\n  • gitguard.dialog.message.detail.ahead.many(main,3,origin/main)" +
+            "\n\ngitguard.dialog.message.closeQuestion"
+        assertEquals(expected, rendered)
+    }
+
+    @Test
+    fun `renderMessage uses singular detail key when exactly one commit is ahead`() {
+        val state = State(
+            hasUncommitted = false,
+            hasUnpushed = true,
+            quitInProgress = false,
+            unpushedDetails = listOf(OutgoingInfo("main", "origin/main", 1)),
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        assertTrue(rendered.contains("gitguard.dialog.message.detail.ahead.one(main,origin/main)"))
+        assertFalse(rendered.contains("gitguard.dialog.message.detail.ahead.many"))
+    }
+
+    @Test
+    fun `renderMessage uses the not-pushed detail key when no remote branch was found`() {
+        val state = State(
+            hasUncommitted = false,
+            hasUnpushed = true,
+            quitInProgress = false,
+            unpushedDetails = listOf(OutgoingInfo("feature/x", null, 0)),
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        assertTrue(rendered.contains("gitguard.dialog.message.detail.notPushed(feature/x)"))
+    }
+
+    @Test
+    fun `renderMessage emits one bullet per repository when multiple have unpushed commits`() {
+        val state = State(
+            hasUncommitted = false,
+            hasUnpushed = true,
+            quitInProgress = false,
+            unpushedDetails = listOf(
+                OutgoingInfo("main", "origin/main", 2),
+                OutgoingInfo("feature/x", null, 0),
+            ),
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        val bulletCount = rendered.split("\n  • ").size - 1
+        assertEquals(2, bulletCount)
+    }
+
+    @Test
+    fun `renderMessage omits detail bullets when nothing is unpushed`() {
+        val state = State(
+            hasUncommitted = true,
+            hasUnpushed = false,
+            quitInProgress = false,
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        assertFalse(rendered.contains("•"))
+        assertTrue(rendered.startsWith("gitguard.dialog.message.uncommitted"))
+        assertTrue(rendered.endsWith("gitguard.dialog.message.closeQuestion"))
     }
 }

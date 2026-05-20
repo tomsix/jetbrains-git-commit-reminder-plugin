@@ -12,10 +12,19 @@ internal object GitGuardDialog {
         PUSH,
     }
 
+    data class OutgoingInfo(
+        val branchName: String,
+        // null when no matching remote branch was found (branch never pushed).
+        val remoteBranchName: String?,
+        // Commits ahead of remoteBranchName. 0 when remoteBranchName is null.
+        val commitCount: Int,
+    )
+
     data class State(
         val hasUncommitted: Boolean,
         val hasUnpushed: Boolean,
         val quitInProgress: Boolean,
+        val unpushedDetails: List<OutgoingInfo> = emptyList(),
     )
 
     fun availableChoices(state: State): List<Choice> = buildList {
@@ -30,6 +39,36 @@ internal object GitGuardDialog {
         state.hasUncommitted && state.hasUnpushed -> "gitguard.dialog.message.both"
         state.hasUncommitted -> "gitguard.dialog.message.uncommitted"
         else -> "gitguard.dialog.message.unpushed"
+    }
+
+    // Assembles the dialog body: lead line, optional per-repo detail bullets, then
+    // the "Close the project anyway?" question. `format` looks up a bundle key with
+    // its positional args; passing a lambda keeps this function pure & testable
+    // without the platform's resource-bundle infrastructure.
+    fun renderMessage(state: State, format: (String, List<Any>) -> String): String {
+        val sb = StringBuilder()
+        sb.append(format(messageKey(state), emptyList()))
+        if (state.hasUnpushed) {
+            for (info in state.unpushedDetails) {
+                sb.append("\n  • ")
+                sb.append(format(detailKey(info), detailArgs(info)))
+            }
+        }
+        sb.append("\n\n")
+        sb.append(format("gitguard.dialog.message.closeQuestion", emptyList()))
+        return sb.toString()
+    }
+
+    private fun detailKey(info: OutgoingInfo): String = when {
+        info.remoteBranchName == null -> "gitguard.dialog.message.detail.notPushed"
+        info.commitCount == 1 -> "gitguard.dialog.message.detail.ahead.one"
+        else -> "gitguard.dialog.message.detail.ahead.many"
+    }
+
+    private fun detailArgs(info: OutgoingInfo): List<Any> = when {
+        info.remoteBranchName == null -> listOf(info.branchName)
+        info.commitCount == 1 -> listOf(info.branchName, info.remoteBranchName)
+        else -> listOf(info.branchName, info.commitCount, info.remoteBranchName)
     }
 
     fun decideOutgoing(

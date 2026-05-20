@@ -16,6 +16,9 @@ import com.intellij.openapi.vcs.changes.ChangeListManager
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import git4idea.GitLocalBranch
+import git4idea.commands.Git
+import git4idea.commands.GitCommand
+import git4idea.commands.GitLineHandler
 import git4idea.repo.GitBranchTrackInfo
 import git4idea.repo.GitRepository
 import git4idea.repo.GitRepositoryManager
@@ -27,10 +30,13 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         if (skipAllChecks) return true
         if (project !== targetProject) return true
 
+        val outgoing = GitRepositoryManager.getInstance(project).repositories
+            .mapNotNull(::resolveOutgoingInfo)
         val state = GitGuardDialog.State(
             hasUncommitted = ChangeListManager.getInstance(project).allChanges.isNotEmpty(),
-            hasUnpushed = hasUnpushedCommits(project),
+            hasUnpushed = outgoing.isNotEmpty(),
             quitInProgress = GitGuardAppState.quitInProgress,
+            unpushedDetails = outgoing,
         )
         if (!state.hasUncommitted && !state.hasUnpushed) return true
 
@@ -40,7 +46,9 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
 
         ProjectUtil.focusProjectWindow(project, true)
         val parent = WindowManager.getInstance().suggestParentWindow(project)
-        val message = MyMessageBundle.message(GitGuardDialog.messageKey(state))
+        val message = GitGuardDialog.renderMessage(state) { key, args ->
+            MyMessageBundle.message(key, *args.toTypedArray())
+        }
         val title = MyMessageBundle.message("gitguard.dialog.title")
         val icon = Messages.getWarningIcon()
 
@@ -78,35 +86,54 @@ internal class GitGuardCloseListener(private val targetProject: Project) : Vetoa
         }, project.disposed)
     }
 
-    private fun hasUnpushedCommits(project: Project): Boolean {
-        return GitRepositoryManager.getInstance(project).repositories.any(::repoHasOutgoing)
-    }
-
-    private fun repoHasOutgoing(repo: GitRepository): Boolean {
+    private fun resolveOutgoingInfo(repo: GitRepository): GitGuardDialog.OutgoingInfo? {
         val branch = repo.currentBranch
         val trackInfo = branch?.let { repo.getBranchTrackInfo(it.name) }
-        return GitGuardDialog.decideOutgoing(
+        val localHash = branch?.let { repo.branches.getHash(it)?.asString() }
+        val (remoteRef, remoteHash) = resolveRemote(repo, branch, trackInfo)
+
+        val isOutgoing = GitGuardDialog.decideOutgoing(
             hasRemotes = repo.remotes.isNotEmpty(),
             hasCurrentBranch = branch != null,
-            localHash = branch?.let { repo.branches.getHash(it)?.asString() },
-            remoteHash = resolveRemoteHash(repo, branch, trackInfo),
+            localHash = localHash,
+            remoteHash = remoteHash,
+        )
+        if (!isOutgoing) return null
+
+        val count = if (remoteHash != null && localHash != null) {
+            countCommitsAhead(repo, remoteHash, localHash)
+        } else 0
+        return GitGuardDialog.OutgoingInfo(
+            branchName = branch!!.name,
+            remoteBranchName = remoteRef,
+            commitCount = count,
         )
     }
 
     // Prefer the configured upstream; fall back to a same-named remote branch
     // (e.g. local `main` ↔ `origin/main`) so a branch that's been pushed without
-    // `git push -u` isn't misreported as having unpushed commits.
-    private fun resolveRemoteHash(
+    // `git push -u` isn't misreported as having unpushed commits. Returns the
+    // remote branch name (for display) alongside its tip hash.
+    private fun resolveRemote(
         repo: GitRepository,
         branch: GitLocalBranch?,
         trackInfo: GitBranchTrackInfo?,
-    ): String? {
-        if (branch == null) return null
-        trackInfo?.remoteBranch?.let { return repo.branches.getHash(it)?.asString() }
+    ): Pair<String?, String?> {
+        if (branch == null) return null to null
+        trackInfo?.remoteBranch?.let { return it.name to repo.branches.getHash(it)?.asString() }
         val match = repo.branches.remoteBranches.firstOrNull {
             it.nameForRemoteOperations == branch.name
-        } ?: return null
-        return repo.branches.getHash(match)?.asString()
+        } ?: return null to null
+        return match.name to repo.branches.getHash(match)?.asString()
+    }
+
+    private fun countCommitsAhead(repo: GitRepository, remoteHash: String, localHash: String): Int {
+        val handler = GitLineHandler(repo.project, repo.root, GitCommand.REV_LIST)
+        handler.addParameters("--count", "$remoteHash..$localHash")
+        handler.setSilent(true)
+        val result = Git.getInstance().runCommand(handler)
+        if (!result.success()) return 0
+        return result.outputAsJoinedString.trim().toIntOrNull() ?: 0
     }
 
     companion object {
