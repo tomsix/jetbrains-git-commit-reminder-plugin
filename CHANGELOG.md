@@ -4,6 +4,10 @@
 
 ## [Unreleased]
 
+## [1.0.0]
+
+First stable release. No functional changes since `1.0.0-alpha.4`.
+
 ## [1.0.0-alpha.4]
 
 ### Fixed
