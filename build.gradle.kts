@@ -11,7 +11,7 @@ plugins {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "261.0"
+            sinceBuild = "253.0"
             untilBuild = provider { null }
         }
     }
@@ -25,8 +25,7 @@ intellijPlatform {
                     IntelliJPlatformType.WebStorm,
                 )
                 channels = listOf(ProductRelease.Channel.RELEASE)
-                sinceBuild = "261"
-                untilBuild = "261.*"
+                sinceBuild = "253"
             }
         }
     }
@@ -48,7 +47,7 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea("2026.1.1")  // build target
+        intellijIdea("2025.3.5")  // build target
         bundledPlugin("Git4Idea")
         testFramework(TestFrameworkType.Platform)
     }
