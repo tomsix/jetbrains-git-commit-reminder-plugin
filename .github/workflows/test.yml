@@ -8,12 +8,14 @@ on:
       - '.gitignore'
       - '.idea/**'
       - '.run/**'
+      - '.claude/**'
   pull_request:
     paths-ignore:
       - '**.md'
       - '.gitignore'
       - '.idea/**'
       - '.run/**'
+      - '.claude/**'
   workflow_call:
 
 permissions:
