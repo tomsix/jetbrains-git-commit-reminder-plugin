@@ -12,14 +12,14 @@ When you close a project, Git Commit Reminder checks every Git repository in tha
 It detects two states:
 
 - **Uncommitted changes** — modified, added, or deleted files in your working tree (anything `ChangeListManager` would show in the Local Changes view).
-- **Unpushed commits** — local commits that are not on the upstream branch, or commits on a branch that has no upstream configured.
+- **Unpushed commits** — local commits that are not on the branch's upstream (or, without an upstream, on a same-named branch of a remote, `origin` first), or a branch that has never been pushed. A branch that is only *behind* its remote is not reported.
 
 Depending on what's detected, the dialog offers contextual actions:
 
 | Button | Shown when | Effect |
 |---|---|---|
 | **Close Anyway** | Always | Close the project, ignoring the warning. |
-| **Close All** | Multiple projects are open | Close this project *and* every other open project. |
+| **Close All** | You are quitting the IDE | Close this project and skip the reminder for the other projects being closed. |
 | **Cancel** | Always | Keep the project open. |
 | **Commit Files** | There are uncommitted changes | Cancel the close and open the Commit dialog. |
 | **Push** | There are unpushed commits | Cancel the close and open the Push dialog. |
@@ -28,16 +28,16 @@ Depending on what's detected, the dialog offers contextual actions:
 
 ### From JetBrains Marketplace
 
-Search for **Git Commit Reminder** in **Settings → Plugins → Marketplace**, or install from the [Marketplace listing](https://plugins.jetbrains.com).
+Search for **Git Commit Reminder** in **Settings → Plugins → Marketplace**, or install from the [Marketplace listing](https://plugins.jetbrains.com/search?search=Git%20Commit%20Reminder).
 
 ### From disk
 
-1. Grab the latest ZIP from the [releases page](#) (or build it locally with `./gradlew buildPlugin`).
+1. Grab the latest ZIP from the [releases page](https://github.com/tomsix/jetbrains-git-commit-reminder-plugin/releases) (or build it locally with `./gradlew buildPlugin`).
 2. In your IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…** and select the ZIP.
 
 ## Requirements
 
-- Any JetBrains IDE based on IntelliJ Platform 2026.1+ (IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, Rider, GoLand, …).
+- Any JetBrains IDE based on IntelliJ Platform 2025.3 or later (IntelliJ IDEA, PyCharm, WebStorm, PhpStorm, Rider, GoLand, …).
 - The bundled **Git** plugin must be enabled (it is by default).
 
 ## Building from source

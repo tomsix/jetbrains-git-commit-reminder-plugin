@@ -1,10 +1,13 @@
 package be.tomsix.gitguard
 
 import be.tomsix.gitguard.GitGuardDialog.Choice
+import be.tomsix.gitguard.GitGuardDialog.Comparison
+import be.tomsix.gitguard.GitGuardDialog.RemoteRef
 import be.tomsix.gitguard.GitGuardDialog.OutgoingInfo
 import be.tomsix.gitguard.GitGuardDialog.State
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -140,76 +143,93 @@ class GitGuardDialogTest {
         assertEquals("gitguard.dialog.message.unpushed", key)
     }
 
-    // --- decideOutgoing ---
+    // --- compare / outgoingFor ---
+
+    private fun ref(remote: String, branch: String, hash: String?) = RemoteRef(remote, "$remote/$branch", hash)
 
     @Test
-    fun `decideOutgoing returns false when the repo has no remotes`() {
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = false,
-            hasCurrentBranch = true,
-            localHash = "abc",
-            remoteHash = "abc",
-        )
-        assertFalse(result)
+    fun `compare is clean when the repo has no remotes`() {
+        val result = GitGuardDialog.compare(false, "main", "abc", listOf(ref("origin", "main", "def")))
+        assertEquals(Comparison.Clean, result)
     }
 
     @Test
-    fun `decideOutgoing returns false when there is no current branch`() {
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = true,
-            hasCurrentBranch = false,
-            localHash = null,
-            remoteHash = null,
-        )
-        assertFalse(result)
+    fun `compare is clean when there is no current branch`() {
+        assertEquals(Comparison.Clean, GitGuardDialog.compare(true, null, null, emptyList()))
     }
 
     @Test
-    fun `decideOutgoing returns true when branch has no remote counterpart but has commits`() {
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = true,
-            hasCurrentBranch = true,
-            localHash = "abc",
-            remoteHash = null,
-        )
-        assertTrue(result)
+    fun `compare reports never pushed when no remote counterpart exists`() {
+        assertEquals(Comparison.NeverPushed("main"), GitGuardDialog.compare(true, "main", "abc", emptyList()))
     }
 
     @Test
-    fun `decideOutgoing returns true when local and remote hashes differ`() {
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = true,
-            hasCurrentBranch = true,
-            localHash = "abc",
-            remoteHash = "def",
-        )
-        assertTrue(result)
+    fun `compare treats a remote ref without a known hash as missing`() {
+        val result = GitGuardDialog.compare(true, "main", "abc", listOf(ref("origin", "main", null)))
+        assertEquals(Comparison.NeverPushed("main"), result)
     }
 
     @Test
-    fun `decideOutgoing returns false when local and remote hashes match`() {
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = true,
-            hasCurrentBranch = true,
-            localHash = "abc",
-            remoteHash = "abc",
-        )
-        assertFalse(result)
+    fun `compare is clean when local and remote hashes match`() {
+        val result = GitGuardDialog.compare(true, "main", "abc", listOf(ref("origin", "main", "abc")))
+        assertEquals(Comparison.Clean, result)
     }
 
     @Test
-    fun `decideOutgoing returns false when branch has no upstream config but same-named remote ref matches`() {
-        // Regression: a branch pushed without `git push -u` has no upstream tracking
-        // configured but its commits are already on the remote. The caller now resolves
-        // the remote hash via the same-named remote ref (e.g. origin/main) and passes
-        // it in here; the matching hash must be treated as "pushed", not "unpushed".
-        val result = GitGuardDialog.decideOutgoing(
-            hasRemotes = true,
-            hasCurrentBranch = true,
-            localHash = "abc",
-            remoteHash = "abc",
+    fun `compare is clean when any candidate matches, even if the preferred one lags`() {
+        // Fork workflow: pushed to origin, upstream/main is behind.
+        val candidates = listOf(ref("upstream", "main", "old"), ref("origin", "main", "abc"))
+        assertEquals(Comparison.Clean, GitGuardDialog.compare(true, "main", "abc", candidates))
+    }
+
+    @Test
+    fun `compare asks for a count against the first candidate when hashes differ`() {
+        val origin = ref("origin", "main", "def")
+        val result = GitGuardDialog.compare(true, "main", "abc", listOf(origin, ref("upstream", "main", "xyz")))
+        assertEquals(Comparison.NeedsCount("main", "abc", origin), result)
+    }
+
+    @Test
+    fun `outgoingFor reports nothing when the local branch is only behind its remote`() {
+        // Regression: after a background fetch the hashes differ but nothing is ahead.
+        val comparison = Comparison.NeedsCount("main", "abc", ref("origin", "main", "def"))
+        assertNull(GitGuardDialog.outgoingFor(comparison, 0))
+    }
+
+    @Test
+    fun `outgoingFor reports the ahead count`() {
+        val comparison = Comparison.NeedsCount("main", "abc", ref("origin", "main", "def"))
+        assertEquals(OutgoingInfo("main", "origin/main", 2), GitGuardDialog.outgoingFor(comparison, 2))
+    }
+
+    @Test
+    fun `outgoingFor reports an unknown count instead of hiding it`() {
+        val comparison = Comparison.NeedsCount("main", "abc", ref("origin", "main", "def"))
+        assertEquals(OutgoingInfo("main", "origin/main", null), GitGuardDialog.outgoingFor(comparison, null))
+    }
+
+    @Test
+    fun `outgoingFor reports never pushed branches and ignores clean ones`() {
+        assertEquals(OutgoingInfo("x", null, null), GitGuardDialog.outgoingFor(Comparison.NeverPushed("x"), null))
+        assertNull(GitGuardDialog.outgoingFor(Comparison.Clean, null))
+    }
+
+    // --- orderCandidates ---
+
+    @Test
+    fun `orderCandidates puts the upstream first, then origin, then other remotes`() {
+        val upstream = ref("fork", "main", "a")
+        val ordered = GitGuardDialog.orderCandidates(
+            upstream,
+            listOf(ref("zeta", "main", "z"), ref("fork", "main", "a"), ref("origin", "main", "o"), ref("alpha", "main", "x")),
         )
-        assertFalse(result)
+        assertEquals(listOf("fork/main", "origin/main", "alpha/main", "zeta/main"), ordered.map { it.name })
+    }
+
+    @Test
+    fun `orderCandidates prefers origin over other same-named remotes without upstream`() {
+        val ordered = GitGuardDialog.orderCandidates(null, listOf(ref("upstream", "main", "u"), ref("origin", "main", "o")))
+        assertEquals("origin/main", ordered.first().name)
     }
 
     // --- renderMessage ---
@@ -254,7 +274,7 @@ class GitGuardDialogTest {
             hasUncommitted = false,
             hasUnpushed = true,
             quitInProgress = false,
-            unpushedDetails = listOf(OutgoingInfo("feature/x", null, 0)),
+            unpushedDetails = listOf(OutgoingInfo("feature/x", null, null)),
         )
         val rendered = GitGuardDialog.renderMessage(state, echo)
         assertTrue(rendered.contains("gitguard.dialog.message.detail.notPushed(feature/x)"))
@@ -268,7 +288,7 @@ class GitGuardDialogTest {
             quitInProgress = false,
             unpushedDetails = listOf(
                 OutgoingInfo("main", "origin/main", 2),
-                OutgoingInfo("feature/x", null, 0),
+                OutgoingInfo("feature/x", null, null),
             ),
         )
         val rendered = GitGuardDialog.renderMessage(state, echo)
@@ -287,5 +307,17 @@ class GitGuardDialogTest {
         assertFalse(rendered.contains("•"))
         assertTrue(rendered.startsWith("gitguard.dialog.message.uncommitted"))
         assertTrue(rendered.endsWith("gitguard.dialog.message.closeQuestion"))
+    }
+
+    @Test
+    fun `renderMessage uses the unknown detail key when the count could not be determined`() {
+        val state = State(
+            hasUncommitted = false,
+            hasUnpushed = true,
+            quitInProgress = false,
+            unpushedDetails = listOf(OutgoingInfo("main", "origin/main", null)),
+        )
+        val rendered = GitGuardDialog.renderMessage(state, echo)
+        assertTrue(rendered.contains("gitguard.dialog.message.detail.unknown(main,origin/main)"))
     }
 }

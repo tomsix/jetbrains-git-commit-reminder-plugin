@@ -15,8 +15,8 @@
         </p>
         <ul>
             <li><b>Uncommitted changes</b> &mdash; modified, added, or deleted files in your working tree.</li>
-            <li><b>Unpushed commits</b> &mdash; local commits that have not been pushed to the upstream branch,
-                or commits on a branch that has no upstream configured.</li>
+            <li><b>Unpushed commits</b> &mdash; local commits that are not on the branch's upstream (or, when no
+                upstream is configured, on a same-named branch of a remote), or a branch that has never been pushed.</li>
         </ul>
         <p>
             You can still close the project at any time &mdash; the dialog just makes sure it is intentional.
@@ -29,10 +29,10 @@
     <depends optional="true" config-file="gitguard-platform-vcs.xml">com.intellij.platform.vcs</depends>
     <depends>Git4Idea</depends>
 
-    <resource-bundle>messages.MyMessageBundle</resource-bundle>
+    <resource-bundle>messages.GitGuardBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="be.tomsix.gitguard.GitGuardStartupActivity"/>
+        <projectCloseHandler implementation="be.tomsix.gitguard.GitGuardCloseHandler"/>
     </extensions>
 
     <applicationListeners>

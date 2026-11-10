@@ -7,10 +7,18 @@
 ### Fixed
 
 - Compatibility with 2026.3 IDEs. 2026.3 moved the VCS APIs the plugin uses (`ChangeListManager`, `com.intellij.dvcs.repo`) into a separate bundled plugin, which caused `NoClassDefFoundError`. The plugin now declares an optional dependency on `com.intellij.platform.vcs`, so older IDEs (2025.3–2026.2) keep working unchanged.
+- A branch that was only *behind* its remote (for example after a background fetch) was reported as having unpushed commits, with "0 commits ahead". The plugin now counts the commits ahead and only warns when there are any.
+- Without a configured upstream, the plugin compared against the first same-named remote branch it found, which could be `upstream/main` in a fork. It now prefers `origin`, and a branch that matches any remote branch exactly counts as pushed.
+- Counting unpushed commits ran `git` on the UI thread while closing the project, which could freeze the IDE. It now runs in the background behind a progress dialog.
+- "Close All" disappeared from the next project's dialog when the previous dialog was left open for more than five seconds, and could stop skipping the remaining projects partway through a quit.
+- Projects closed right after opening, before the startup activity had run, were not checked.
 
 ### Internal
 
 - Bumped the IntelliJ Platform Gradle Plugin to 2.20.1; `verifyPlugin` now passes on IntelliJ IDEA, PhpStorm and WebStorm 2025.3 through 2026.3.
+- The close check is registered as a `projectCloseHandler` extension instead of a listener added from a startup activity, so it is removed cleanly when the plugin is unloaded.
+- Renamed the message bundle to `GitGuardBundle` and moved it into its package directory.
+- Raised the plugin verification CI timeout to 60 minutes for the larger IDE matrix.
 
 ## [1.0.0]
 
