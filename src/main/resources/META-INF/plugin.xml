@@ -25,6 +25,8 @@
 
     <!-- Compatibility: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
     <depends>com.intellij.modules.platform</depends>
+    <!-- 2026.3+ moved VCS APIs (ChangeListManager, dvcs) into a bundled plugin; absent (and skipped) on older IDEs. -->
+    <depends optional="true" config-file="gitguard-platform-vcs.xml">com.intellij.platform.vcs</depends>
     <depends>Git4Idea</depends>
 
     <resource-bundle>messages.MyMessageBundle</resource-bundle>
