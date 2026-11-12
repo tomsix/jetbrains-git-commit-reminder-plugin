@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.0.1]
+
 ### Fixed
 
 - Compatibility with 2026.3 IDEs. 2026.3 moved the VCS APIs the plugin uses (`ChangeListManager`, `com.intellij.dvcs.repo`) into a separate bundled plugin, which caused `NoClassDefFoundError`. The plugin now declares an optional dependency on `com.intellij.platform.vcs`, so older IDEs (2025.3–2026.2) keep working unchanged.
